@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Tareas - Iglesia Bíblica Naciones a la Luz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- html2pdf.js for generating PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Cinzel', 'serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            700: '#102a43',
+                            900: '#0b1b2b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom print and PDF styling rules */
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; font-size: 12pt; }
+            .page-break { page-break-before: always; }
+        }
+
+        /* Paper sheet simulation */
+        .paper-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 18mm 20mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            color: #111;
+            font-size: 13px;
+            line-height: 1.4;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* Styled dotted/underlined input lines matching printed form */
+        .ruled-line {
+            border-bottom: 1px solid #333;
+            min-height: 24px;
+            padding: 2px 4px;
+            word-break: break-word;
+        }
+
+        .ruled-box {
+            border: 1px solid #333;
+            min-height: 70px;
+            padding: 8px;
+            word-break: break-word;
+            white-space: pre-wrap;
+            border-radius: 2px;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+
+    <!-- Navigation Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white p-1.5 rounded-lg text-slate-900 font-bold">
+                    <i data-lucide="book-open-check" class="w-6 h-6 text-slate-900"></i>
+                </div>
+                <div>
+                    <h1 class="font-serif font-bold text-lg leading-tight tracking-wide">IGLESIA BÍBLICA NACIONES A LA LUZ</h1>
+                    <p class="text-xs text-slate-300 font-light">Tareas de Discipulado • Red de Discipulados</p>
+                </div>
+            </div>
+
+            <!-- Header Action buttons -->
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleTab('form')" id="tab-btn-form" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    <span>Formulario</span>
+                </button>
+                <button onclick="toggleTab('preview')" id="tab-btn-preview" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>Vista Previa PDF</span>
+                </button>
+                <button onclick="toggleTab('saved')" id="tab-btn-saved" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 hover:text-white relative">
+                    <i data-lucide="folder-archive" class="w-4 h-4"></i>
+                    <span>Guardados</span>
+                    <span id="saved-badge" class="ml-1 px-1.5 py-0.2 bg-amber-500 text-slate-950 text-[10px] font-bold rounded-full hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- TAB 1: EDIT FORM VIEW -->
+        <section id="view-form" class="space-y-6">
+            <!-- Top Controls bar -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="pen-tool" class="w-5 h-5 text-blue-600"></i>
+                        Llenado de Reporte de Discipulado
+                    </h2>
+                    <p class="text-xs text-slate-500">Completa la información bíblica y tus reflexiones. Los cambios se sincronizan en tiempo real con el documento.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="loadSampleData()" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg flex items-center gap-1 transition">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i> Cargar Ejemplos
+                    </button>
+                    <button type="button" onclick="clearForm()" class="px-3 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center gap-1 transition">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpiar
+                    </button>
+                    <button type="button" onclick="saveReport()" class="px-4 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1.5 transition shadow-sm">
+                        <i data-lucide="save" class="w-4 h-4"></i> Guardar Reporte
+                    </button>
+                </div>
+            </div>
+
+            <!-- FORM SECTIONS -->
+            <form id="discipleship-form" onsubmit="event.preventDefault(); saveReport();" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- LEFT COLUMN: Basic Data & Page 1 Fields -->
+                <div class="space-y-6">
+                    <!-- General Details Box -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <h3 class="font-semibold text-slate-800 text-sm border-b pb-2 flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-4 h-4 text-blue-500"></i> Datos Generales
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">Fecha</label>
+                                <input type="date" id="input-fecha" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">Nombre del discípulo</label>
+                                <input type="text" id="input-discipulo" placeholder="Ej. Juan Pérez" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">Libro</label>
+                                <input type="text" id="input-libro" placeholder="Ej. Juan" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">Capítulo</label>
+                                <input type="text" id="input-capitulo" placeholder="Ej. 15" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Page 1 Reflection Questions -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <h3 class="font-semibold text-slate-800 text-sm border-b pb-2 flex items-center gap-2">
+                            <i data-lucide="help-circle" class="w-4 h-4 text-blue-500"></i> Observación e Idea Principal
+                        </h3>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-800 mb-1">¿Qué me impresionó más del pasaje?</label>
+                            <textarea id="input-impresion" rows="3" placeholder="Escribe lo que captó tu atención..." class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-800 mb-1">¿Cuál es la idea principal?</label>
+                            <textarea id="input-idea" rows="3" placeholder="Resume el mensaje central del pasaje..." class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Key Words Table Input -->
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                        <div class="flex items-center justify-between border-b pb-2">
+                            <h3 class="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                                <i data-lucide="key" class="w-4 h-4 text-blue-500"></i> ¿Cuáles son las palabras clave y qué significan?
+                            </h3>
+                            <button type="button" onclick="addKeyWordRow()" class="px-2.5 py-1 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md flex items-center gap-1 transition">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Agregar Palabra
+                            </button>
+                        </div>
+
+                        <div id="keywords-container" class="space-y-3">
+                            <!-- Dynamic Key Word Rows inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: Application & Page 2 Fields -->
+                <div class="space-y-6">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                        <h3 class="font-semibold text-slate-800 text-sm border-b pb-2 flex items-center gap-2">
+                            <i data-lucide="heart-handshake" class="w-4 h-4 text-emerald-600"></i> Aplicación Personal y Mandatos
+                        </h3>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-800 mb-1">¿Qué significa en mi vida y qué desea Dios que yo haga?</label>
+                            <textarea id="input-vida" rows="3" placeholder="Aplicación directa a tu caminar diario..." class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-800 mb-1">¿Hay un mandato que obedecer?</label>
+                            <textarea id="input-mandato" rows="2" placeholder="Escribe la instrucción directa encontrada..." class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-800 mb-1">¿Hay un ejemplo que seguir?</label>
+                            <textarea id="input-ejemplo" rows="2" placeholder="Acción o actitud positiva a imitar..." class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-800 mb-1">¿Hay un pecado que evitar?</label>
+                            <textarea id="input-pecado" rows="2" placeholder="Advertencias o conductas a desechar..." class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-800 mb-1">¿Hay una promesa para hacerla mía?</label>
+                            <textarea id="input-promesa" rows="2" placeholder="Promesa dada por Dios en esta lectura..." class="w-full text-sm p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Action Buttons -->
+                    <div class="flex items-center justify-end gap-3 pt-2">
+                        <button type="button" onclick="toggleTab('preview')" class="px-4 py-2 text-xs sm:text-sm font-medium bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg flex items-center gap-1.5 transition">
+                            <i data-lucide="eye" class="w-4 h-4"></i> Ver Documento Formateado
+                        </button>
+                        <button type="submit" class="px-5 py-2 text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1.5 transition shadow">
+                            <i data-lucide="save" class="w-4 h-4"></i> Guardar Reporte
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- TAB 2: PDF & DOCUMENT PREVIEW VIEW -->
+        <section id="view-preview" class="hidden space-y-6">
+            <!-- Action Toolbar for Preview -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4 no-print">
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Vista fiel al formato impreso
+                    </span>
+                    <span class="text-xs text-slate-500">2 páginas</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleTab('form')" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg flex items-center gap-1 transition">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Volver a Editar
+                    </button>
+                    <button onclick="window.print()" class="px-3.5 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-900 text-white rounded-lg flex items-center gap-1.5 transition">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i> Imprimir
+                    </button>
+                    <button onclick="downloadPDF()" class="px-4 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1.5 transition shadow">
+                        <i data-lucide="download" class="w-4 h-4"></i> Descargar PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- PDF PRINTABLE PAGES AREA -->
+            <div id="pdf-container" class="space-y-8 py-4">
+                
+                <!-- PAGE 1 OF PDF -->
+                <div class="paper-sheet flex flex-col justify-between" id="doc-page-1">
+                    <div>
+                        <!-- Header Branding without Logo Symbol -->
+                        <div class="flex items-start justify-between border-b-2 border-black pb-4 mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="font-serif text-black leading-tight">
+                                    <div class="text-sm font-extrabold tracking-widest uppercase">IGLESIA BÍBLICA</div>
+                                    <div class="text-2xl font-black tracking-widest uppercase">NACIONES</div>
+                                    <div class="text-xl font-extrabold tracking-widest uppercase">A LA LUZ</div>
+                                    <div class="text-[10px] font-sans font-bold tracking-normal border-t border-black/40 pt-0.5 mt-1">Alumbrando tu propósito</div>
+                                </div>
+                            </div>
+
+                            <!-- Document Date/Header Info -->
+                            <div class="text-right font-serif text-sm space-y-1.5 pt-1">
+                                <div class="flex items-center justify-end gap-2">
+                                    <span class="font-bold">FECHA:</span>
+                                    <span id="preview-fecha" class="border-b border-black min-w-[110px] inline-block text-center font-sans text-xs"></span>
+                                </div>
+                                <div class="flex items-center justify-end gap-2">
+                                    <span class="font-bold">LIBRO:</span>
+                                    <span id="preview-libro" class="border-b border-black min-w-[110px] inline-block text-center font-sans text-xs"></span>
+                                </div>
+                                <div class="flex items-center justify-end gap-2">
+                                    <span class="font-bold">CAPÍTULO:</span>
+                                    <span id="preview-capitulo" class="border-b border-black min-w-[110px] inline-block text-center font-sans text-xs"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Form Title -->
+                        <div class="text-center my-4">
+                            <h2 class="font-serif font-extrabold text-xl tracking-wider uppercase border-b-2 border-t-2 border-black py-1.5 inline-block px-8">
+                                TAREAS DE DISCIPULADO
+                            </h2>
+                        </div>
+
+                        <!-- Disciple Name Field -->
+                        <div class="my-4 flex items-baseline gap-2 font-serif">
+                            <span class="font-bold text-sm whitespace-nowrap">Nombre del discípulo:</span>
+                            <span id="preview-discipulo" class="ruled-line flex-1 font-sans text-sm font-medium"></span>
+                        </div>
+
+                        <!-- Question 1: What impressed me standard format -->
+                        <div class="my-5">
+                            <p class="font-bold text-sm mb-1.5">¿Qué me impresionó más del pasaje?</p>
+                            <div id="preview-impresion" class="ruled-box font-sans text-xs"></div>
+                        </div>
+
+                        <!-- Question 2: Main Idea -->
+                        <div class="my-5">
+                            <p class="font-bold text-sm mb-1.5">¿Cuál es la idea principal?</p>
+                            <div id="preview-idea" class="ruled-box font-sans text-xs"></div>
+                        </div>
+
+                        <!-- Key Words Table -->
+                        <div class="my-5">
+                            <p class="font-bold text-sm mb-2">¿Cuáles son las palabras clave y qué significan?</p>
+                            <table class="w-full border-collapse border border-black text-xs">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="border border-black p-2 text-left w-1/3 font-bold uppercase">Palabra</th>
+                                        <th class="border border-black p-2 text-left w-2/3 font-bold uppercase">Significado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preview-keywords-body">
+                                    <!-- Dynamic rows loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Footer of Page 1 -->
+                    <div class="pt-4 border-t border-black flex justify-between items-center text-xs font-serif font-bold tracking-widest uppercase">
+                        <span>RED DE DISCIPULADOS</span>
+                        <span class="text-[10px] font-sans font-normal text-gray-500">Página 1 de 2</span>
+                    </div>
+                </div>
+
+                <!-- PAGE 2 OF PDF -->
+                <div class="paper-sheet flex flex-col justify-between page-break" id="doc-page-2">
+                    <div>
+                        <!-- Page 2 Header Badge -->
+                        <div class="flex justify-between items-center border-b border-black pb-2 mb-6">
+                            <span class="font-serif font-bold text-xs uppercase tracking-wider">IGLESIA BÍBLICA NACIONES A LA LUZ • TAREAS DE DISCIPULADO</span>
+                            <span class="text-xs font-serif font-bold" id="preview-p2-meta"></span>
+                        </div>
+
+                        <!-- Question 3: Meaning & Action -->
+                        <div class="mb-5">
+                            <p class="font-bold text-sm mb-1.5">¿Qué significa en mi vida y qué desea Dios que yo haga?</p>
+                            <div id="preview-vida" class="ruled-box font-sans text-xs min-h-[90px]"></div>
+                        </div>
+
+                        <!-- Question 4: Command to obey -->
+                        <div class="mb-5">
+                            <p class="font-bold text-sm mb-1.5">¿Hay un mandato que obedecer?</p>
+                            <div id="preview-mandato" class="ruled-box font-sans text-xs min-h-[75px]"></div>
+                        </div>
+
+                        <!-- Question 5: Example to follow -->
+                        <div class="mb-5">
+                            <p class="font-bold text-sm mb-1.5">¿Hay un ejemplo que seguir?</p>
+                            <div id="preview-ejemplo" class="ruled-box font-sans text-xs min-h-[75px]"></div>
+                        </div>
+
+                        <!-- Question 6: Sin to avoid -->
+                        <div class="mb-5">
+                            <p class="font-bold text-sm mb-1.5">¿Hay un pecado que evitar?</p>
+                            <div id="preview-pecado" class="ruled-box font-sans text-xs min-h-[75px]"></div>
+                        </div>
+
+                        <!-- Question 7: Promise to claim -->
+                        <div class="mb-5">
+                            <p class="font-bold text-sm mb-1.5">¿Hay una promesa para hacerla mía?</p>
+                            <div id="preview-promesa" class="ruled-box font-sans text-xs min-h-[75px]"></div>
+                        </div>
+                    </div>
+
+                    <!-- Page 2 Footer -->
+                    <div class="pt-4 border-t border-black flex justify-between items-center text-xs font-serif font-bold tracking-widest uppercase">
+                        <span>RED DE DISCIPULADOS</span>
+                        <span class="text-[10px] font-sans font-normal text-gray-500">Página 2 de 2</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 3: SAVED REPORTS VIEW -->
+        <section id="view-saved" class="hidden space-y-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="folder" class="w-5 h-5 text-amber-500"></i>
+                        Reportes Guardados
+                    </h2>
+                    <p class="text-xs text-slate-500">Historial de tareas completadas. Puedes volver a cargarlos, editarlos o descargarlos en cualquier momento.</p>
+                </div>
+                <button onclick="createNewReport()" class="px-4 py-2 text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1.5 transition">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Crear Nuevo Reporte
+                </button>
+            </div>
+
+            <!-- Saved Reports List Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-700">
+                        <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="py-3.5 px-4">Fecha</th>
+                                <th class="py-3.5 px-4">Discípulo</th>
+                                <th class="py-3.5 px-4">Pasaje Bíblico</th>
+                                <th class="py-3.5 px-4">Idea Principal</th>
+                                <th class="py-3.5 px-4 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="saved-reports-list" class="divide-y divide-slate-200">
+                            <!-- Dynamic rows injected here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty state placeholder -->
+                <div id="saved-empty-state" class="py-12 text-center text-slate-400 space-y-3">
+                    <i data-lucide="inbox" class="w-12 h-12 mx-auto stroke-1 text-slate-300"></i>
+                    <p class="text-sm">No tienes ningún reporte guardado aún.</p>
+                    <button onclick="toggleTab('form')" class="px-3.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                        Llenar mi primer reporte
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Application Logic Script -->
+    <script>
+        // State variables
+        let currentReportId = null;
+        let savedReports = [];
+        let keyWordCount = 0;
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('input-fecha').value = today;
+
+            // Load saved reports from memory / local storage
+            loadSavedReportsFromStorage();
+
+            // Add default empty keyword row
+            addKeyWordRow();
+
+            // Setup real-time dynamic sync to preview
+            setupLiveSync();
+        });
+
+        // Toggle Tabs (Form, Preview, Saved)
+        function toggleTab(tabName) {
+            document.getElementById('view-form').classList.add('hidden');
+            document.getElementById('view-preview').classList.add('hidden');
+            document.getElementById('view-saved').classList.add('hidden');
+
+            document.getElementById('tab-btn-form').className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 hover:text-white';
+            document.getElementById('tab-btn-preview').className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 hover:text-white';
+            document.getElementById('tab-btn-saved').className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 hover:text-white relative';
+
+            if (tabName === 'form') {
+                document.getElementById('view-form').classList.remove('hidden');
+                document.getElementById('tab-btn-form').className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700';
+            } else if (tabName === 'preview') {
+                updatePreviewDocument();
+                document.getElementById('view-preview').classList.remove('hidden');
+                document.getElementById('tab-btn-preview').className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700';
+            } else if (tabName === 'saved') {
+                renderSavedReportsTable();
+                document.getElementById('view-saved').classList.remove('hidden');
+                document.getElementById('tab-btn-saved').className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700 relative';
+            }
+
+            lucide.createIcons();
+        }
+
+        // Add Key Word Row to form
+        function addKeyWordRow(word = '', meaning = '') {
+            keyWordCount++;
+            const container = document.getElementById('keywords-container');
+            const rowId = `kw-row-${keyWordCount}`;
+
+            const row = document.createElement('div');
+            row.id = rowId;
+            row.className = 'flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200';
+            row.innerHTML = `
+                <input type="text" value="${escapeHtml(word)}" placeholder="Palabra" class="kw-palabra w-1/3 text-xs p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                <input type="text" value="${escapeHtml(meaning)}" placeholder="Significado" class="kw-significado flex-1 text-xs p-2 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 outline-none">
+                <button type="button" onclick="removeKeyWordRow('${rowId}')" class="text-slate-400 hover:text-red-500 p-1.5 rounded transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            lucide.createIcons();
+
+            // Bind inputs for live update
+            row.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', updatePreviewDocument);
+            });
+
+            updatePreviewDocument();
+        }
+
+        // Remove Key Word Row
+        function removeKeyWordRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) {
+                row.remove();
+                updatePreviewDocument();
+            }
+        }
+
+        // Setup real-time synchronization between form fields and preview
+        function setupLiveSync() {
+            const inputs = [
+                'input-fecha', 'input-discipulo', 'input-libro', 'input-capitulo',
+                'input-impresion', 'input-idea', 'input-vida', 'input-mandato',
+                'input-ejemplo', 'input-pecado', 'input-promesa'
+            ];
+
+            inputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', updatePreviewDocument);
+                }
+            });
+        }
+
+        // Update Document Preview DOM
+        function updatePreviewDocument() {
+            const fechaVal = formatDateDisplay(document.getElementById('input-fecha').value);
+            const libroVal = document.getElementById('input-libro').value.trim() || '—';
+            const capVal = document.getElementById('input-capitulo').value.trim() || '—';
+            const discipuloVal = document.getElementById('input-discipulo').value.trim() || '';
+
+            document.getElementById('preview-fecha').innerText = fechaVal;
+            document.getElementById('preview-libro').innerText = libroVal;
+            document.getElementById('preview-capitulo').innerText = capVal;
+            document.getElementById('preview-discipulo').innerText = discipuloVal;
+
+            document.getElementById('preview-impresion').innerText = document.getElementById('input-impresion').value;
+            document.getElementById('preview-idea').innerText = document.getElementById('input-idea').value;
+            document.getElementById('preview-vida').innerText = document.getElementById('input-vida').value;
+            document.getElementById('preview-mandato').innerText = document.getElementById('input-mandato').value;
+            document.getElementById('preview-ejemplo').innerText = document.getElementById('input-ejemplo').value;
+            document.getElementById('preview-pecado').innerText = document.getElementById('input-pecado').value;
+            document.getElementById('preview-promesa').innerText = document.getElementById('input-promesa').value;
+
+            document.getElementById('preview-p2-meta').innerText = `${libroVal} ${capVal} • ${discipuloVal}`;
+
+            // Build Keywords Table in Preview
+            const tableBody = document.getElementById('preview-keywords-body');
+            tableBody.innerHTML = '';
+
+            const kwRows = document.querySelectorAll('#keywords-container > div');
+            let hasWords = false;
+
+            kwRows.forEach(row => {
+                const w = row.querySelector('.kw-palabra').value.trim();
+                const s = row.querySelector('.kw-significado').value.trim();
+
+                if (w || s) {
+                    hasWords = true;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="border border-black p-2 font-semibold align-top">${escapeHtml(w)}</td>
+                        <td class="border border-black p-2 align-top">${escapeHtml(s)}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                }
+            });
+
+            // Default empty rows if table is blank to maintain document structure
+            if (!hasWords) {
+                for (let i = 0; i < 3; i++) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="border border-black p-2 h-7">&nbsp;</td>
+                        <td class="border border-black p-2 h-7">&nbsp;</td>
+                    `;
+                    tableBody.appendChild(tr);
+                }
+            }
+        }
+
+        // Helper to format date cleanly
+        function formatDateDisplay(dateStr) {
+            if (!dateStr) return '___/___/______';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        // Helper to escape HTML characters
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;")
+                       .replace(/</g, "&lt;")
+                       .replace(/>/g, "&gt;")
+                       .replace(/"/g, "&quot;")
+                       .replace(/'/g, "&#039;");
+        }
+
+        // PDF Export using html2pdf
+        function downloadPDF() {
+            updatePreviewDocument();
+            const element = document.getElementById('pdf-container');
+            const discipulo = document.getElementById('input-discipulo').value.trim() || 'Discipulo';
+            const libro = document.getElementById('input-libro').value.trim() || 'Pasaje';
+            const capitulo = document.getElementById('input-capitulo').value.trim() || '';
+            
+            const filename = `Reporte_Tareas_${discipulo}_${libro}_${capitulo}.pdf`.replace(/\s+/g, '_');
+
+            const opt = {
+                margin:       0,
+                filename:     filename,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Temporary visual feedback
+            const btn = event?.currentTarget;
+            if (btn) btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Generando PDF...`;
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                if (btn) {
+                    btn.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i> Descargar PDF`;
+                    lucide.createIcons();
+                }
+            }).catch(err => {
+                console.error(err);
+                if (btn) btn.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i> Descargar PDF`;
+            });
+        }
+
+        // Save current form report to Local Storage / Memory
+        function saveReport() {
+            const discipulo = document.getElementById('input-discipulo').value.trim();
+            const libro = document.getElementById('input-libro').value.trim();
+
+            if (!discipulo || !libro) {
+                showToast('Por favor completa al menos el nombre del discípulo y el libro.', 'warning');
+                return;
+            }
+
+            // Gather keywords array
+            const keywords = [];
+            document.querySelectorAll('#keywords-container > div').forEach(row => {
+                const w = row.querySelector('.kw-palabra').value.trim();
+                const s = row.querySelector('.kw-significado').value.trim();
+                if (w || s) {
+                    keywords.push({ word: w, meaning: s });
+                }
+            });
+
+            const reportData = {
+                id: currentReportId || 'rep_' + Date.now(),
+                createdAt: new Date().toISOString(),
+                fecha: document.getElementById('input-fecha').value,
+                discipulo: discipulo,
+                libro: libro,
+                capitulo: document.getElementById('input-capitulo').value.trim(),
+                impresion: document.getElementById('input-impresion').value,
+                idea: document.getElementById('input-idea').value,
+                keywords: keywords,
+                vida: document.getElementById('input-vida').value,
+                mandato: document.getElementById('input-mandato').value,
+                ejemplo: document.getElementById('input-ejemplo').value,
+                pecado: document.getElementById('input-pecado').value,
+                promesa: document.getElementById('input-promesa').value
+            };
+
+            // Update state
+            const existingIndex = savedReports.findIndex(r => r.id === reportData.id);
+            if (existingIndex >= 0) {
+                savedReports[existingIndex] = reportData;
+            } else {
+                savedReports.unshift(reportData);
+                currentReportId = reportData.id;
+            }
+
+            persistReportsToStorage();
+            updateSavedBadge();
+            showToast('¡Reporte guardado con éxito!', 'success');
+        }
+
+        // Load report from list into form
+        function loadReportIntoForm(reportId) {
+            const report = savedReports.find(r => r.id === reportId);
+            if (!report) return;
+
+            currentReportId = report.id;
+            document.getElementById('input-fecha').value = report.fecha || '';
+            document.getElementById('input-discipulo').value = report.discipulo || '';
+            document.getElementById('input-libro').value = report.libro || '';
+            document.getElementById('input-capitulo').value = report.capitulo || '';
+            document.getElementById('input-impresion').value = report.impresion || '';
+            document.getElementById('input-idea').value = report.idea || '';
+            document.getElementById('input-vida').value = report.vida || '';
+            document.getElementById('input-mandato').value = report.mandato || '';
+            document.getElementById('input-ejemplo').value = report.ejemplo || '';
+            document.getElementById('input-pecado').value = report.pecado || '';
+            document.getElementById('input-promesa').value = report.promesa || '';
+
+            // Reset and build keywords container
+            const container = document.getElementById('keywords-container');
+            container.innerHTML = '';
+            keyWordCount = 0;
+
+            if (report.keywords && report.keywords.length > 0) {
+                report.keywords.forEach(kw => addKeyWordRow(kw.word, kw.meaning));
+            } else {
+                addKeyWordRow();
+            }
+
+            toggleTab('form');
+            showToast(`Cargado reporte: ${report.libro} ${report.capitulo} - ${report.discipulo}`, 'info');
+        }
+
+        // Delete Report
+        function deleteReport(reportId) {
+            savedReports = savedReports.filter(r => r.id !== reportId);
+            if (currentReportId === reportId) {
+                currentReportId = null;
+            }
+            persistReportsToStorage();
+            renderSavedReportsTable();
+            updateSavedBadge();
+            showToast('Reporte eliminado', 'info');
+        }
+
+        // Create fresh new report
+        function createNewReport() {
+            currentReportId = null;
+            clearForm();
+            toggleTab('form');
+        }
+
+        // Clear Form fields
+        function clearForm() {
+            document.getElementById('discipleship-form').reset();
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('input-fecha').value = today;
+            
+            document.getElementById('keywords-container').innerHTML = '';
+            keyWordCount = 0;
+            addKeyWordRow();
+            currentReportId = null;
+            updatePreviewDocument();
+        }
+
+        // Render Saved Reports Table
+        function renderSavedReportsTable() {
+            const tableBody = document.getElementById('saved-reports-list');
+            const emptyState = document.getElementById('saved-empty-state');
+            tableBody.innerHTML = '';
+
+            if (savedReports.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            savedReports.forEach(report => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-xs text-slate-600">${formatDateDisplay(report.fecha)}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-900">${escapeHtml(report.discipulo)}</td>
+                    <td class="py-3 px-4 text-slate-700">${escapeHtml(report.libro)} ${escapeHtml(report.capitulo)}</td>
+                    <td class="py-3 px-4 text-slate-500 max-w-xs truncate">${escapeHtml(report.idea || report.impresion || '—')}</td>
+                    <td class="py-3 px-4 text-right space-x-2">
+                        <button onclick="loadReportIntoForm('${report.id}')" class="px-2.5 py-1 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition inline-flex items-center gap-1">
+                            <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Abrir
+                        </button>
+                        <button onclick="deleteReport('${report.id}')" class="px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded transition inline-flex items-center gap-1">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Storage Helpers
+        function persistReportsToStorage() {
+            try {
+                localStorage.setItem('ibnl_discipleship_reports', JSON.stringify(savedReports));
+            } catch (e) {
+                console.warn('Storage quota or restriction', e);
+            }
+        }
+
+        function loadSavedReportsFromStorage() {
+            try {
+                const data = localStorage.getItem('ibnl_discipleship_reports');
+                if (data) {
+                    savedReports = JSON.parse(data);
+                    updateSavedBadge();
+                }
+            } catch (e) {
+                savedReports = [];
+            }
+        }
+
+        function updateSavedBadge() {
+            const badge = document.getElementById('saved-badge');
+            if (savedReports.length > 0) {
+                badge.innerText = savedReports.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // Load Sample Data into Form
+        function loadSampleData() {
+            currentReportId = null;
+            document.getElementById('input-fecha').value = new Date().toISOString().split('T')[0];
+            document.getElementById('input-discipulo').value = 'Carlos Mendoza';
+            document.getElementById('input-libro').value = 'Juan';
+            document.getElementById('input-capitulo').value = '15';
+            
+            document.getElementById('input-impresion').value = 'Me impresionó mucho la alegoría de la Vid y los pámpanos, especialmente cómo Jesús enfatiza que separados de Él nada podemos hacer.';
+            document.getElementById('input-idea').value = 'Jesús es la vid verdadera y sus discípulos son los pámpanos. Permanecer en Cristo es la única forma de dar fruto permanente y glorificar al Padre.';
+            
+            document.getElementById('keywords-container').innerHTML = '';
+            keyWordCount = 0;
+            addKeyWordRow('Permanecer', 'Quedarse unido espiritualmente a Cristo mediante la obediencia y la oración constante.');
+            addKeyWordRow('Pámpano', 'Rama joven de la vid que recibe la sabia vital para dar fruto.');
+            addKeyWordRow('Limpia (Podar)', 'Proceso del Padre para quitar lo improductivo y hacer que demos más fruto.');
+
+            document.getElementById('input-vida').value = 'Debo priorizar mi tiempo a solas con Dios cada mañana antes de iniciar mis actividades diarias para mantenerme conectado a la Vid.';
+            document.getElementById('input-mandato').value = 'Permaneced en mí, y yo en vosotros (Juan 15:4). Permanecer en su amor y guardar sus mandamientos.';
+            document.getElementById('input-ejemplo').value = 'Jesús demuestra amor total y obediencia absoluta al Padre guardando sus mandamientos.';
+            document.getElementById('input-pecado').value = 'Intentar hacer la obra de Dios o vivir la vida cristiana en mis propias fuerzas y capacidades humanas.';
+            document.getElementById('input-promesa').value = 'Si permanecéis en mí, y mis palabras permanecen en vosotros, pedid todo lo que queréis, y os será hecho (Juan 15:7).';
+
+            updatePreviewDocument();
+            showToast('Ejemplo de discipulado cargado.', 'info');
+        }
+
+        // Custom Toast Notification System
+        function showToast(message, type = 'info') {
+            const existing = document.getElementById('app-toast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'app-toast';
+            
+            let bg = 'bg-slate-900 text-white';
+            if (type === 'success') bg = 'bg-emerald-700 text-white';
+            if (type === 'warning') bg = 'bg-amber-600 text-white';
+
+            toast.className = `fixed bottom-5 right-5 z-50 px-4 py-3 rounded-lg shadow-xl text-xs font-medium flex items-center gap-2 ${bg} transition-all transform translate-y-0`;
+            toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
